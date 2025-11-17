@@ -1,0 +1,31 @@
+[build]
+  publish = "."
+  command = "npm run build"
+
+[build.environment]
+  NODE_VERSION = "18"
+
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/admin"
+  to = "/admin.html"
+  status = 200
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+[dev]
+  command = "echo 'Development server ready'"
+  port = 3000
+  publish = "."
+  autoLaunch = true
+
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"

@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Executive Summary - PR Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/moment@2.29.4/moment.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.38.4/dist/umd/supabase.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+        }
+
+        .dashboard-container {
+            max-width: 1600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+            border-bottom: 4px solid #3498db;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header .subtitle {
+            font-size: 1.2rem;
+            opacity: 0.9;
+            font-weight: 300;
+        }
+
+        .admin-link {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 25px;
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: all 0.3s;
+        }
+
+        .admin-link:hover {
+            background: rgba(255,255,255,0.3);
+            transform: translateY(-2px);
+        }
+
+        .last-updated {
+            background: #ecf0f1;
+            padding: 15px;
+            text-align: center;
+            font-size: 0.9rem;
+            color: #7f8c8d;
+            border-bottom: 1px solid #bdc3c7;
+        }
+
+        .dashboard-grid {
+            padding: 30px;
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            grid-gap: 25px;
+            min-height: calc(100vh - 200px);
+        }
+
+        /* Card Metrics Row */
+        .metrics-row {
+            grid-column: 1 / -1;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            grid-gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .metric-card {
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 12px;
+            text-align: center;
+            box-shadow: 0 8px 16px rgba(52, 152, 219, 0.3);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .metric-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 24px rgba(52, 152, 219, 0.4);
+        }
+
+        .metric-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: rgba(255,255,255,0.3);
+        }
+
+        .metric-card.total { background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%); box-shadow: 0 8px 16px rgba(231, 76, 60, 0.3); }
+        .metric-card.pending { background: linear-gradient(135deg, #f39c12 0%, #d68910 100%); box-shadow: 0 8px 16px rgba(243, 156, 18, 0.3); }
+        .metric-card.emergency { background: linear-gradient(135deg, #e67e22 0%, #d35400 100%); box-shadow: 0 8px 16px rgba(230, 126, 34, 0.3); }
+        .metric-card.owners { background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%); box-shadow: 0 8px 16px rgba(155, 89, 182, 0.3); }
+        .metric-card.this-week { background: linear-gradient(135deg, #1abc9c 0%, #16a085 100%); box-shadow: 0 8px 16px rgba(26, 188, 156, 0.3); }
+        .metric-card.overdue { background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%); box-shadow: 0 8px 16px rgba(44, 62, 80, 0.3); }
+
+        .metric-value {
+            font-size: 2.8rem;
+            font-weight: 800;
+            margin-bottom: 5px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .metric-label {
+            font-size: 1rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            opacity: 0.9;
+        }
+
+        /* Chart Containers */
+        .chart-container {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            border: 1px solid #ecf0f1;
+            position: relative;
+        }
+
+        .chart-container h3 {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 20px;
+            text-align: center;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #ecf0f1;
+        }
+
+        /* Main Pie Chart - Pending PRs by Owner */
+        .main-pie-chart {
+            grid-column: 1 / 9;
+            grid-row: 2 / 5;
+        }
+
+        /* Side Charts */
+        .side-chart-1 {
+            grid-column: 9 / 13;
+            grid-row: 2 / 3;
+        }
+
+        .side-chart-2 {
+            grid-column: 9 / 13;
+            grid-row: 3 / 4;
+        }
+
+        .side-chart-3 {
+            grid-column: 9 / 13;
+            grid-row: 4 / 5;
+        }
+
+        /* Bottom Charts */
+        .bottom-chart-1 {
+            grid-column: 1 / 5;
+            grid-row: 5 / 7;
+        }
+
+        .bottom-chart-2 {
+            grid-column: 5 / 9;
+            grid-row: 5 / 7;
+        }
+
+        .bottom-chart-3 {
+            grid-column: 9 / 13;
+            grid-row: 5 / 7;
+        }
+
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 200px;
+            color: #7f8c8d;
+            font-size: 1.1rem;
+        }
+
+        .error {
+            color: #e74c3c;
+            text-align: center;
+            padding: 20px;
+            background: #fdf2f2;
+            border-radius: 8px;
+            margin: 20px;
+        }
+
+        .chart-canvas {
+            max-height: 400px;
+        }
+
+        .chart-canvas.small {
+            max-height: 200px;
+        }
+
+        .netlify-badge {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(255,255,255,0.1);
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            opacity: 0.7;
+        }
+
+        /* Responsive design */
+        @media (max-width: 1200px) {
+            .dashboard-grid {
+                grid-template-columns: repeat(8, 1fr);
+            }
+            
+            .main-pie-chart {
+                grid-column: 1 / -1;
+                grid-row: 2 / 4;
+            }
+            
+            .side-chart-1, .side-chart-2, .side-chart-3 {
+                grid-column: span 4;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .header h1 { font-size: 1.8rem; }
+            .dashboard-grid { padding: 15px; grid-gap: 15px; }
+            .metric-card { padding: 20px; }
+            .metric-value { font-size: 2rem; }
+            .chart-container { padding: 15px; }
+            .admin-link { position: static; margin-top: 10px; display: inline-block; }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <div class="header">
+            <a href="/admin.html" class="admin-link">🛠️ Admin Panel</a>
+            <h1>EXECUTIVE SUMMARY</h1>
+            <div class="subtitle">Purchase Request Dashboard</div>
+            <div class="netlify-badge">Powered by Netlify + Supabase</div>
+        </div>
+        
+        <div class="last-updated">
+            Last updated: <span id="lastUpdated">Loading...</span>
+        </div>
+
+        <div class="dashboard-grid">
+            <!-- Metrics Cards Row -->
+            <div class="metrics-row">
+                <div class="metric-card total">
+                    <div class="metric-value" id="totalPRs">0</div>
+                    <div class="metric-label">Total PRs</div>
+                </div>
+                <div class="metric-card pending">
+                    <div class="metric-value" id="pendingPRs">0</div>
+                    <div class="metric-label">Pending</div>
+                </div>
+                <div class="metric-card emergency">
+                    <div class="metric-value" id="emergencyPRs">0</div>
+                    <div class="metric-label">Emergency</div>
+                </div>
+                <div class="metric-card owners">
+                    <div class="metric-value" id="totalOwners">0</div>
+                    <div class="metric-label">Owners</div>
+                </div>
+                <div class="metric-card this-week">
+                    <div class="metric-value" id="thisWeekPRs">0</div>
+                    <div class="metric-label">This Week</div>
+                </div>
+                <div class="metric-card overdue">
+                    <div class="metric-value" id="overduePRs">0</div>
+                    <div class="metric-label">Overdue</div>
+                </div>
+            </div>
+
+            <!-- Main Pie Chart -->
+            <div class="chart-container main-pie-chart">
+                <h3>PENDING PR BY OWNER</h3>
+                <canvas id="mainPieChart" class="chart-canvas"></canvas>
+            </div>
+
+            <!-- Side Charts -->
+            <div class="chart-container side-chart-1">
+                <h3>STATUS BREAKDOWN</h3>
+                <canvas id="statusChart" class="chart-canvas small"></canvas>
+            </div>
+
+            <div class="chart-container side-chart-2">
+                <h3>PRIORITY LEVELS</h3>
+                <canvas id="priorityChart" class="chart-canvas small"></canvas>
+            </div>
+
+            <div class="chart-container side-chart-3">
+                <h3>WEEKLY TREND</h3>
+                <canvas id="weeklyChart" class="chart-canvas small"></canvas>
+            </div>
+
+            <!-- Bottom Charts -->
+            <div class="chart-container bottom-chart-1">
+                <h3>APPROVAL TIMELINE</h3>
+                <canvas id="approvalChart" class="chart-canvas"></canvas>
+            </div>
+
+            <div class="chart-container bottom-chart-2">
+                <h3>TOP COST CENTERS</h3>
+                <canvas id="costCenterChart" class="chart-canvas"></canvas>
+            </div>
+
+            <div class="chart-container bottom-chart-3">
+                <h3>ASSIGNMENT AGE</h3>
+                <canvas id="assignmentChart" class="chart-canvas"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Supabase configuration
+        const SUPABASE_URL = 'VITE_SUPABASE_URL'; // This will be replaced by build process
+        const SUPABASE_ANON_KEY = 'VITE_SUPABASE_ANON_KEY'; // This will be replaced by build process
+
+        // Initialize Supabase client
+        let supabase;
+        try {
+            // In production, these will be injected as environment variables
+            const supabaseUrl = window.location.hostname === 'localhost' ? 
+                'https://your-project.supabase.co' : 
+                (window.VITE_SUPABASE_URL || 'https://your-project.supabase.co');
+            const supabaseKey = window.location.hostname === 'localhost' ?
+                'your-anon-key' :
+                (window.VITE_SUPABASE_ANON_KEY || 'your-anon-key');
+                
+            supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+        } catch (error) {
+            console.error('Failed to initialize Supabase:', error);
+        }
+
+        // Global variables
+        let dashboardData = null;
+        let charts = {};
+
+        // Color schemes
+        const colors = {
+            primary: ['#3498db', '#e74c3c', '#2ecc71', '#f39c12', '#9b59b6', '#1abc9c', '#34495e', '#e67e22'],
+            gradient: [
+                'rgba(52, 152, 219, 0.8)',
+                'rgba(231, 76, 60, 0.8)', 
+                'rgba(46, 204, 113, 0.8)',
+                'rgba(243, 156, 18, 0.8)',
+                'rgba(155, 89, 182, 0.8)',
+                'rgba(26, 188, 156, 0.8)',
+                'rgba(52, 73, 94, 0.8)',
+                'rgba(230, 126, 34, 0.8)'
+            ]
+        };
+
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            loadDashboardData();
+            // Refresh every 5 minutes
+            setInterval(loadDashboardData, 5 * 60 * 1000);
+        });
+
+        // Load data from Supabase
+        async function loadDashboardData() {
+            if (!supabase) {
+                showError('Supabase connection not available. Please check configuration.');
+                return;
+            }
+
+            try {
+                // Get latest PR data
+                const { data: prData, error: prError } = await supabase
+                    .from('pr_data')
+                    .select('*')
+                    .eq('week_category', 'THIS_WEEK')
+                    .order('data_date', { ascending: false })
+                    .limit(10000);
+
+                if (prError) {
+                    throw prError;
+                }
+
+                // Calculate owner distribution
+                const ownerDistribution = calculateOwnerDistribution(prData || []);
+                
+                dashboardData = {
+                    prData: prData || [],
+                    ownerDistribution
+                };
+
+                updateDashboard();
+                document.getElementById('lastUpdated').textContent = moment().format('MMMM Do YYYY, h:mm:ss A');
+            } catch (error) {
+                console.error('Error loading dashboard data:', error);
+                showError('Failed to load dashboard data. Please check your Supabase configuration.');
+            }
+        }
+
+        // Calculate owner distribution for pie chart
+        function calculateOwnerDistribution(data) {
+            const ownerCounts = {};
+            const ownerEmergency = {};
+
+            data.forEach(pr => {
+                const owner = pr.owner_name || 'Unknown';
+                ownerCounts[owner] = (ownerCounts[owner] || 0) + 1;
+                if (pr.emergency_flag) {
+                    ownerEmergency[owner] = (ownerEmergency[owner] || 0) + 1;
+                }
+            });
+
+            const uniquePRs = new Set(data.map(pr => pr.prno)).size;
+
+            return Object.keys(ownerCounts).map(owner => ({
+                owner_name: owner,
+                pr_count: ownerCounts[owner],
+                emergency_count: ownerEmergency[owner] || 0,
+                percentage: ((ownerCounts[owner] / uniquePRs) * 100).toFixed(1)
+            })).sort((a, b) => b.pr_count - a.pr_count);
+        }
+
+        // Update all dashboard elements
+        function updateDashboard() {
+            if (!dashboardData) return;
+
+            updateMetrics();
+            createMainPieChart();
+            createStatusChart();
+            createPriorityChart(); 
+            createWeeklyChart();
+            createApprovalChart();
+            createCostCenterChart();
+            createAssignmentChart();
+        }
+
+        // Update metric cards
+        function updateMetrics() {
+            const { prData } = dashboardData;
+            
+            // Calculate metrics from data
+            const uniquePRs = new Set(prData.map(pr => pr.prno)).size;
+            const pendingPRs = prData.filter(pr => pr.pr_status === 'PENDING').length;
+            const emergencyPRs = prData.filter(pr => pr.emergency_flag).length;
+            const uniqueOwners = new Set(prData.map(pr => pr.owner_name)).size;
+            const thisWeekPRs = prData.filter(pr => pr.approved_since === 'This Week').length;
+            const overduePRs = prData.filter(pr => 
+                !['This Week', '1 weeks ago', '2 weeks ago'].includes(pr.approved_since)
+            ).length;
+
+            document.getElementById('totalPRs').textContent = uniquePRs.toLocaleString();
+            document.getElementById('pendingPRs').textContent = pendingPRs.toLocaleString();
+            document.getElementById('emergencyPRs').textContent = emergencyPRs.toLocaleString();
+            document.getElementById('totalOwners').textContent = uniqueOwners;
+            document.getElementById('thisWeekPRs').textContent = thisWeekPRs.toLocaleString();
+            document.getElementById('overduePRs').textContent = overduePRs.toLocaleString();
+        }
+
+        // Create main pie chart
+        function createMainPieChart() {
+            const { ownerDistribution } = dashboardData;
+            
+            if (charts.mainPie) charts.mainPie.destroy();
+            
+            const ctx = document.getElementById('mainPieChart').getContext('2d');
+            charts.mainPie = new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: ownerDistribution.map(d => d.owner_name),
+                    datasets: [{
+                        data: ownerDistribution.map(d => d.pr_count),
+                        backgroundColor: colors.gradient,
+                        borderColor: colors.primary,
+                        borderWidth: 2,
+                        hoverOffset: 15
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 20,
+                                usePointStyle: true,
+                                font: { size: 12 }
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = ((context.raw / total) * 100).toFixed(1);
+                                    return `${context.label}: ${context.raw} PRs (${percentage}%)`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Create status breakdown chart
+        function createStatusChart() {
+            const { prData } = dashboardData;
+            
+            if (charts.status) charts.status.destroy();
+            
+            const statusCounts = prData.reduce((acc, pr) => {
+                acc[pr.pr_status] = (acc[pr.pr_status] || 0) + 1;
+                return acc;
+            }, {});
+
+            const ctx = document.getElementById('statusChart').getContext('2d');
+            charts.status = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(statusCounts),
+                    datasets: [{
+                        data: Object.values(statusCounts),
+                        backgroundColor: ['#f39c12', '#e74c3c', '#27ae60'],
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom' }
+                    }
+                }
+            });
+        }
+
+        // Create priority levels chart
+        function createPriorityChart() {
+            const { prData } = dashboardData;
+            
+            if (charts.priority) charts.priority.destroy();
+            
+            const emergency = prData.filter(pr => pr.emergency_flag).length;
+            const normal = prData.length - emergency;
+
+            const ctx = document.getElementById('priorityChart').getContext('2d');
+            charts.priority = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Normal', 'Emergency'],
+                    datasets: [{
+                        data: [normal, emergency],
+                        backgroundColor: ['#3498db', '#e74c3c'],
+                        borderWidth: 2
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'bottom' }
+                    }
+                }
+            });
+        }
+
+        // Create weekly trend chart
+        function createWeeklyChart() {
+            const { prData } = dashboardData;
+            
+            if (charts.weekly) charts.weekly.destroy();
+            
+            const weekCounts = prData.reduce((acc, pr) => {
+                acc[pr.approved_since] = (acc[pr.approved_since] || 0) + 1;
+                return acc;
+            }, {});
+
+            const sortedWeeks = Object.keys(weekCounts).sort();
+            
+            const ctx = document.getElementById('weeklyChart').getContext('2d');
+            charts.weekly = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: sortedWeeks.slice(0, 6),
+                    datasets: [{
+                        data: sortedWeeks.slice(0, 6).map(week => weekCounts[week]),
+                        backgroundColor: '#1abc9c',
+                        borderColor: '#16a085',
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { beginAtZero: true }
+                    }
+                }
+            });
+        }
+
+        // Create approval timeline chart
+        function createApprovalChart() {
+            const { prData } = dashboardData;
+            
+            if (charts.approval) charts.approval.destroy();
+            
+            const approvalCounts = prData.reduce((acc, pr) => {
+                acc[pr.approved_since] = (acc[pr.approved_since] || 0) + 1;
+                return acc;
+            }, {});
+
+            const ctx = document.getElementById('approvalChart').getContext('2d');
+            charts.approval = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(approvalCounts),
+                    datasets: [{
+                        label: 'PRs by Approval Time',
+                        data: Object.values(approvalCounts),
+                        backgroundColor: colors.gradient[0],
+                        borderColor: colors.primary[0],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: { beginAtZero: true }
+                    }
+                }
+            });
+        }
+
+        // Create cost center chart
+        function createCostCenterChart() {
+            const { prData } = dashboardData;
+            
+            if (charts.costCenter) charts.costCenter.destroy();
+            
+            const costCenterCounts = prData.reduce((acc, pr) => {
+                const center = pr.cost_center_name || 'Unknown';
+                acc[center] = (acc[center] || 0) + 1;
+                return acc;
+            }, {});
+
+            const sortedCenters = Object.entries(costCenterCounts)
+                .sort(([,a], [,b]) => b - a)
+                .slice(0, 8);
+
+            const ctx = document.getElementById('costCenterChart').getContext('2d');
+            charts.costCenter = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: sortedCenters.map(([center]) => center.length > 20 ? center.substring(0, 20) + '...' : center),
+                    datasets: [{
+                        data: sortedCenters.map(([, count]) => count),
+                        backgroundColor: colors.gradient[2],
+                        borderColor: colors.primary[2],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { beginAtZero: true }
+                    }
+                }
+            });
+        }
+
+        // Create assignment age chart
+        function createAssignmentChart() {
+            const { prData } = dashboardData;
+            
+            if (charts.assignment) charts.assignment.destroy();
+            
+            const assignmentCounts = prData.reduce((acc, pr) => {
+                acc[pr.last_assigned_since] = (acc[pr.last_assigned_since] || 0) + 1;
+                return acc;
+            }, {});
+
+            const ctx = document.getElementById('assignmentChart').getContext('2d');
+            charts.assignment = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: Object.keys(assignmentCounts),
+                    datasets: [{
+                        label: 'Assignment Age',
+                        data: Object.values(assignmentCounts),
+                        borderColor: colors.primary[4],
+                        backgroundColor: colors.gradient[4],
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        y: { beginAtZero: true }
+                    }
+                }
+            });
+        }
+
+        // Show error message
+        function showError(message) {
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error';
+            errorDiv.textContent = message;
+            document.body.appendChild(errorDiv);
+            setTimeout(() => errorDiv.remove(), 10000);
+        }
+    </script>
+</body>
+</html>

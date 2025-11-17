@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel - PR Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/moment@2.29.4/moment.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.38.4/dist/umd/supabase.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f8f9fa;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            text-align: center;
+            position: relative;
+        }
+
+        .header h1 {
+            font-size: 2rem;
+            margin-bottom: 10px;
+        }
+
+        .back-link {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 25px;
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: all 0.3s;
+        }
+
+        .back-link:hover {
+            background: rgba(255,255,255,0.3);
+            transform: translateY(-2px);
+        }
+
+        .netlify-badge {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(255,255,255,0.1);
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            opacity: 0.7;
+        }
+
+        .card {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+            overflow: hidden;
+        }
+
+        .card-header {
+            background: #3498db;
+            color: white;
+            padding: 20px;
+            font-weight: 600;
+            font-size: 1.1rem;
+        }
+
+        .card-body {
+            padding: 30px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #2c3e50;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e9ecef;
+            border-radius: 5px;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            transition: all 0.3s;
+            text-align: center;
+        }
+
+        .btn-primary {
+            background: #3498db;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #2980b9;
+        }
+
+        .btn-success {
+            background: #27ae60;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #229954;
+        }
+
+        .btn-block {
+            width: 100%;
+        }
+
+        .upload-area {
+            border: 2px dashed #3498db;
+            border-radius: 10px;
+            padding: 40px;
+            text-align: center;
+            background: #f8f9ff;
+            margin-bottom: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .upload-area:hover {
+            background: #f0f4ff;
+            border-color: #2980b9;
+        }
+
+        .upload-area.dragover {
+            background: #e3f2fd;
+            border-color: #1976d2;
+        }
+
+        .upload-icon {
+            font-size: 48px;
+            color: #3498db;
+            margin-bottom: 15px;
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-danger {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .alert-info {
+            background: #cce7f0;
+            color: #055160;
+            border: 1px solid #b8daff;
+        }
+
+        .progress {
+            background: #e9ecef;
+            border-radius: 10px;
+            height: 20px;
+            margin: 20px 0;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            background: #3498db;
+            height: 100%;
+            transition: width 0.3s;
+            width: 0%;
+        }
+
+        .file-info {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 15px;
+        }
+
+        .config-section {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 5px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+
+        .config-section h3 {
+            color: #856404;
+            margin-bottom: 15px;
+        }
+
+        .config-section code {
+            background: #f8f9fa;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+        }
+
+        @media (max-width: 768px) {
+            .container { padding: 10px; }
+            .card-body { padding: 20px; }
+            .upload-area { padding: 20px; }
+            .back-link { position: static; margin-bottom: 10px; display: inline-block; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <a href="/index.html" class="back-link">← Back to Dashboard</a>
+            <h1>PR Dashboard Admin Panel</h1>
+            <p>Upload and manage Purchase Request data</p>
+            <div class="netlify-badge">Netlify Edition</div>
+        </div>
+
+        <!-- Configuration Notice -->
+        <div class="config-section" id="configSection">
+            <h3>⚙️ Configuration Required</h3>
+            <p>To use the admin panel, you need to set up your Supabase environment variables in Netlify:</p>
+            <ol>
+                <li>Go to your Netlify site dashboard</li>
+                <li>Navigate to <strong>Site settings → Environment variables</strong></li>
+                <li>Add these variables:</li>
+                <ul>
+                    <li><code>VITE_SUPABASE_URL</code> - Your Supabase project URL</li>
+                    <li><code>VITE_SUPABASE_ANON_KEY</code> - Your Supabase anon key</li>
+                </ul>
+                <li>Redeploy your site</li>
+            </ol>
+            <button class="btn btn-primary" onclick="testConnection()">Test Connection</button>
+        </div>
+
+        <!-- Upload Section -->
+        <div class="card">
+            <div class="card-header">
+                Upload New Data
+            </div>
+            <div class="card-body">
+                <form id="uploadForm">
+                    <div class="form-group">
+                        <label for="weekCategory">Week Category</label>
+                        <select id="weekCategory" class="form-control" required>
+                            <option value="">Select Week Category</option>
+                            <option value="THIS_WEEK">This Week</option>
+                            <option value="PREVIOUS_WEEK">Previous Week</option>
+                            <option value="TWO_WEEKS">Two Weeks Ago</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="dataDate">Data Date</label>
+                        <input type="date" id="dataDate" class="form-control" required>
+                    </div>
+                    <div class="upload-area" id="uploadArea">
+                        <div class="upload-icon">📁</div>
+                        <h3>Drop Excel file here or click to browse</h3>
+                        <p>Supported formats: .xlsx, .xls</p>
+                        <input type="file" id="fileInput" accept=".xlsx,.xls" style="display: none;">
+                    </div>
+                    <div class="file-info" id="fileInfo" style="display: none;">
+                        <strong>Selected file:</strong> <span id="fileName"></span><br>
+                        <strong>Size:</strong> <span id="fileSize"></span><br>
+                        <strong>Records:</strong> <span id="recordCount">Calculating...</span>
+                    </div>
+                    <div class="progress" id="uploadProgress" style="display: none;">
+                        <div class="progress-bar" id="progressBar"></div>
+                    </div>
+                    <button type="submit" class="btn btn-success btn-block" id="uploadBtn" disabled>
+                        Upload Data
+                    </button>
+                </form>
+                <div id="uploadAlert"></div>
+            </div>
+        </div>
+
+        <!-- Instructions -->
+        <div class="card">
+            <div class="card-header">
+                How to Use
+            </div>
+            <div class="card-body">
+                <h4>📋 Upload Process:</h4>
+                <ol>
+                    <li><strong>Select Week Category:</strong> Choose which week this data represents</li>
+                    <li><strong>Set Data Date:</strong> Enter the date when this data was generated</li>
+                    <li><strong>Upload Excel File:</strong> Drag and drop or click to select your Excel file</li>
+                    <li><strong>Process:</strong> Click "Upload Data" to process and save</li>
+                </ol>
+                
+                <h4>📊 Data Requirements:</h4>
+                <ul>
+                    <li>Excel file must have a "PR" sheet (or be the first sheet)</li>
+                    <li>Required columns: PRNO, OWNER_NAME, PR_STATUS</li>
+                    <li>Support for all 29 columns from your current structure</li>
+                    <li>Emergency detection from keywords in various fields</li>
+                </ul>
+
+                <h4>🔄 Update Frequency:</h4>
+                <ul>
+                    <li>Upload new data weekly or as needed</li>
+                    <li>Each upload replaces data for that week category</li>
+                    <li>Dashboard updates immediately after upload</li>
+                    <li>Previous versions are automatically archived</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Supabase configuration
+        let supabase;
+        let selectedFile = null;
+        let processedData = null;
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeSupabase();
+            setupEventListeners();
+            
+            // Set default date to today
+            document.getElementById('dataDate').value = moment().format('YYYY-MM-DD');
+        });
+
+        function initializeSupabase() {
+            try {
+                // Get environment variables (these would be injected by Netlify)
+                const supabaseUrl = window.VITE_SUPABASE_URL || 
+                    (window.location.hostname === 'localhost' ? 'https://your-project.supabase.co' : null);
+                const supabaseKey = window.VITE_SUPABASE_ANON_KEY || 
+                    (window.location.hostname === 'localhost' ? 'your-anon-key' : null);
+
+                if (!supabaseUrl || !supabaseKey || supabaseUrl.includes('your-project')) {
+                    showAlert('uploadAlert', 'danger', 'Supabase configuration missing. Please set environment variables.');
+                    document.getElementById('configSection').style.display = 'block';
+                    return;
+                }
+
+                supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+                document.getElementById('configSection').style.display = 'none';
+            } catch (error) {
+                console.error('Failed to initialize Supabase:', error);
+                showAlert('uploadAlert', 'danger', 'Failed to initialize Supabase connection.');
+            }
+        }
+
+        async function testConnection() {
+            if (!supabase) {
+                showAlert('uploadAlert', 'danger', 'Supabase not initialized. Check your environment variables.');
+                return;
+            }
+
+            try {
+                const { data, error } = await supabase.from('pr_data').select('count').limit(1);
+                if (error) {
+                    throw error;
+                }
+                showAlert('uploadAlert', 'success', 'Supabase connection successful!');
+                document.getElementById('configSection').style.display = 'none';
+            } catch (error) {
+                showAlert('uploadAlert', 'danger', `Connection failed: ${error.message}`);
+            }
+        }
+
+        // Event listeners
+        function setupEventListeners() {
+            // Upload form
+            document.getElementById('uploadForm').addEventListener('submit', handleUpload);
+            
+            // File input
+            const fileInput = document.getElementById('fileInput');
+            const uploadArea = document.getElementById('uploadArea');
+            
+            uploadArea.addEventListener('click', () => fileInput.click());
+            fileInput.addEventListener('change', handleFileSelect);
+            
+            // Drag and drop
+            uploadArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadArea.classList.add('dragover');
+            });
+            
+            uploadArea.addEventListener('dragleave', () => {
+                uploadArea.classList.remove('dragover');
+            });
+            
+            uploadArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadArea.classList.remove('dragover');
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    fileInput.files = files;
+                    handleFileSelect();
+                }
+            });
+
+            // Form validation
+            document.getElementById('weekCategory').addEventListener('change', validateForm);
+            document.getElementById('dataDate').addEventListener('change', validateForm);
+        }
+
+        // File handling
+        async function handleFileSelect() {
+            const file = fileInput.files[0];
+            if (file) {
+                selectedFile = file;
+                document.getElementById('fileName').textContent = file.name;
+                document.getElementById('fileSize').textContent = formatFileSize(file.size);
+                document.getElementById('fileInfo').style.display = 'block';
+                
+                // Process file to count records
+                try {
+                    const data = await processExcelFile(file);
+                    processedData = data;
+                    document.getElementById('recordCount').textContent = `${data.length} records found`;
+                } catch (error) {
+                    document.getElementById('recordCount').textContent = 'Error reading file';
+                    processedData = null;
+                }
+                
+                validateForm();
+            }
+        }
+
+        async function processExcelFile(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, { type: 'array' });
+                        const sheetName = workbook.SheetNames[0]; // First sheet or 'PR'
+                        const worksheet = workbook.Sheets[sheetName];
+                        const jsonData = XLSX.utils.sheet_to_json(worksheet);
+                        resolve(jsonData);
+                    } catch (error) {
+                        reject(error);
+                    }
+                };
+                reader.onerror = () => reject(new Error('Failed to read file'));
+                reader.readAsArrayBuffer(file);
+            });
+        }
+
+        function validateForm() {
+            const weekCategory = document.getElementById('weekCategory').value;
+            const dataDate = document.getElementById('dataDate').value;
+            const hasFile = selectedFile !== null && processedData !== null;
+            
+            document.getElementById('uploadBtn').disabled = !(weekCategory && dataDate && hasFile && supabase);
+        }
+
+        // Upload handling
+        async function handleUpload(e) {
+            e.preventDefault();
+            
+            if (!supabase) {
+                showAlert('uploadAlert', 'danger', 'Supabase connection not available');
+                return;
+            }
+
+            if (!processedData) {
+                showAlert('uploadAlert', 'danger', 'Please select a valid Excel file');
+                return;
+            }
+            
+            const weekCategory = document.getElementById('weekCategory').value;
+            const dataDate = document.getElementById('dataDate').value;
+            
+            try {
+                document.getElementById('uploadProgress').style.display = 'block';
+                document.getElementById('uploadBtn').disabled = true;
+                updateProgress(10);
+                
+                // Use Netlify serverless function for upload
+                const response = await fetch('/.netlify/functions/upload', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        data: processedData,
+                        weekCategory,
+                        dataDate,
+                        filename: selectedFile.name
+                    })
+                });
+                
+                updateProgress(90);
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    updateProgress(100);
+                    showAlert('uploadAlert', 'success', 
+                        `Upload successful! Processed ${result.recordsProcessed} records.`);
+                    resetUploadForm();
+                } else {
+                    const error = await response.json();
+                    showAlert('uploadAlert', 'danger', error.error || 'Upload failed');
+                }
+            } catch (error) {
+                console.error('Upload error:', error);
+                showAlert('uploadAlert', 'danger', 'Upload failed. Please check your connection and try again.');
+            } finally {
+                document.getElementById('uploadProgress').style.display = 'none';
+                document.getElementById('uploadBtn').disabled = false;
+            }
+        }
+
+        function updateProgress(percent) {
+            document.getElementById('progressBar').style.width = percent + '%';
+        }
+
+        function resetUploadForm() {
+            document.getElementById('uploadForm').reset();
+            document.getElementById('fileInfo').style.display = 'none';
+            selectedFile = null;
+            processedData = null;
+            validateForm();
+            document.getElementById('dataDate').value = moment().format('YYYY-MM-DD');
+        }
+
+        // Utility functions
+        function showAlert(containerId, type, message) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = `<div class="alert alert-${type}">${message}</div>`;
+            setTimeout(() => container.innerHTML = '', 8000);
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+    </script>
+</body>
+</html>

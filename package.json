@@ -1,0 +1,21 @@
+{
+  "name": "pr-dashboard-netlify",
+  "version": "1.0.0",
+  "description": "PowerBI-style PR Dashboard for Netlify deployment",
+  "main": "index.html",
+  "scripts": {
+    "build": "echo 'Build complete - static files ready'",
+    "start": "echo 'Use netlify dev for local development'",
+    "dev": "netlify dev"
+  },
+  "devDependencies": {
+    "netlify-cli": "^16.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "your-github-repo-url"
+  },
+  "keywords": ["dashboard", "powerbi", "supabase", "netlify"],
+  "author": "Your Name",
+  "license": "MIT"
+}
