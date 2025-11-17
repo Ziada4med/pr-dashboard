@@ -59,18 +59,6 @@
             transform: translateY(-2px);
         }
 
-        .netlify-badge {
-            position: absolute;
-            bottom: 20px;
-            right: 20px;
-            background: rgba(255,255,255,0.1);
-            color: white;
-            padding: 5px 15px;
-            border-radius: 20px;
-            font-size: 0.8rem;
-            opacity: 0.7;
-        }
-
         .card {
             background: white;
             border-radius: 10px;
@@ -258,22 +246,16 @@
             <a href="/index.html" class="back-link">← Back to Dashboard</a>
             <h1>PR Dashboard Admin Panel</h1>
             <p>Upload and manage Purchase Request data</p>
-            <div class="netlify-badge">Netlify Edition</div>
         </div>
 
         <!-- Configuration Notice -->
         <div class="config-section" id="configSection">
-            <h3>⚙️ Configuration Required</h3>
-            <p>To use the admin panel, you need to set up your Supabase environment variables in Netlify:</p>
+            <h3>⚙️ Configuration Instructions</h3>
+            <p><strong>To use the admin panel:</strong></p>
             <ol>
-                <li>Go to your Netlify site dashboard</li>
-                <li>Navigate to <strong>Site settings → Environment variables</strong></li>
-                <li>Add these variables:</li>
-                <ul>
-                    <li><code>VITE_SUPABASE_URL</code> - Your Supabase project URL</li>
-                    <li><code>VITE_SUPABASE_ANON_KEY</code> - Your Supabase anon key</li>
-                </ul>
-                <li>Redeploy your site</li>
+                <li>Set up your Supabase database using the provided schema</li>
+                <li>Update the Supabase credentials in the JavaScript section below</li>
+                <li>Upload your Excel files using the form below</li>
             </ol>
             <button class="btn btn-primary" onclick="testConnection()">Test Connection</button>
         </div>
@@ -281,7 +263,7 @@
         <!-- Upload Section -->
         <div class="card">
             <div class="card-header">
-                Upload New Data
+                Upload New Data (Direct to Supabase)
             </div>
             <div class="card-body">
                 <form id="uploadForm">
@@ -313,80 +295,70 @@
                         <div class="progress-bar" id="progressBar"></div>
                     </div>
                     <button type="submit" class="btn btn-success btn-block" id="uploadBtn" disabled>
-                        Upload Data
+                        Upload Data to Supabase
                     </button>
                 </form>
                 <div id="uploadAlert"></div>
             </div>
         </div>
 
-        <!-- Instructions -->
+        <!-- Configuration -->
         <div class="card">
             <div class="card-header">
-                How to Use
+                Supabase Configuration
             </div>
             <div class="card-body">
-                <h4>📋 Upload Process:</h4>
-                <ol>
-                    <li><strong>Select Week Category:</strong> Choose which week this data represents</li>
-                    <li><strong>Set Data Date:</strong> Enter the date when this data was generated</li>
-                    <li><strong>Upload Excel File:</strong> Drag and drop or click to select your Excel file</li>
-                    <li><strong>Process:</strong> Click "Upload Data" to process and save</li>
-                </ol>
-                
-                <h4>📊 Data Requirements:</h4>
-                <ul>
-                    <li>Excel file must have a "PR" sheet (or be the first sheet)</li>
-                    <li>Required columns: PRNO, OWNER_NAME, PR_STATUS</li>
-                    <li>Support for all 29 columns from your current structure</li>
-                    <li>Emergency detection from keywords in various fields</li>
-                </ul>
-
-                <h4>🔄 Update Frequency:</h4>
-                <ul>
-                    <li>Upload new data weekly or as needed</li>
-                    <li>Each upload replaces data for that week category</li>
-                    <li>Dashboard updates immediately after upload</li>
-                    <li>Previous versions are automatically archived</li>
-                </ul>
+                <p><strong>Update these values with your Supabase credentials:</strong></p>
+                <div class="form-group">
+                    <label for="supabaseUrl">Supabase URL</label>
+                    <input type="text" id="supabaseUrl" class="form-control" placeholder="https://your-project.supabase.co" value="https://your-project.supabase.co">
+                </div>
+                <div class="form-group">
+                    <label for="supabaseKey">Supabase Anon Key</label>
+                    <input type="text" id="supabaseKey" class="form-control" placeholder="Your anon key here" value="your-anon-key">
+                </div>
+                <button class="btn btn-primary" onclick="updateConfig()">Update Configuration</button>
             </div>
         </div>
     </div>
 
     <script>
-        // Supabase configuration
+        // Supabase configuration (update these values!)
+        let SUPABASE_URL = 'https://your-project.supabase.co';
+        let SUPABASE_ANON_KEY = 'your-anon-key';
         let supabase;
         let selectedFile = null;
         let processedData = null;
 
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
+            // Try to get values from environment if available
+            if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
+                // In production, try to use environment variables if they were injected
+                SUPABASE_URL = 'VITE_SUPABASE_URL_PLACEHOLDER';
+                SUPABASE_ANON_KEY = 'VITE_SUPABASE_ANON_KEY_PLACEHOLDER';
+            }
+            
             initializeSupabase();
             setupEventListeners();
             
             // Set default date to today
             document.getElementById('dataDate').value = moment().format('YYYY-MM-DD');
+            
+            // Update form fields with current values
+            document.getElementById('supabaseUrl').value = SUPABASE_URL;
+            document.getElementById('supabaseKey').value = SUPABASE_ANON_KEY;
         });
 
         function initializeSupabase() {
             try {
-                // Environment variables will be injected by build process
-                const supabaseUrl = 'VITE_SUPABASE_URL_PLACEHOLDER';
-                const supabaseKey = 'VITE_SUPABASE_ANON_KEY_PLACEHOLDER';
-
-                // Check if running in development
-                if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
-                    console.warn('⚠️ Development mode - using placeholder credentials');
-                    showAlert('uploadAlert', 'info', 'Development mode: Please configure your Supabase credentials for testing.');
-                    document.getElementById('configSection').style.display = 'block';
-                    return;
-                } else if (supabaseUrl.includes('PLACEHOLDER') || supabaseKey.includes('PLACEHOLDER')) {
-                    showAlert('uploadAlert', 'danger', 'Supabase configuration missing. Please set environment variables in Netlify.');
+                if (SUPABASE_URL.includes('your-project') || SUPABASE_URL.includes('PLACEHOLDER')) {
+                    showAlert('uploadAlert', 'info', 'Please configure your Supabase credentials below.');
                     document.getElementById('configSection').style.display = 'block';
                     return;
                 }
 
-                supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+                supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
                 document.getElementById('configSection').style.display = 'none';
                 console.log('✅ Supabase initialized successfully');
             } catch (error) {
@@ -395,9 +367,15 @@
             }
         }
 
+        function updateConfig() {
+            SUPABASE_URL = document.getElementById('supabaseUrl').value;
+            SUPABASE_ANON_KEY = document.getElementById('supabaseKey').value;
+            initializeSupabase();
+        }
+
         async function testConnection() {
             if (!supabase) {
-                showAlert('uploadAlert', 'danger', 'Supabase not initialized. Check your environment variables.');
+                showAlert('uploadAlert', 'danger', 'Please configure Supabase credentials first.');
                 return;
             }
 
@@ -415,10 +393,8 @@
 
         // Event listeners
         function setupEventListeners() {
-            // Upload form
             document.getElementById('uploadForm').addEventListener('submit', handleUpload);
             
-            // File input
             const fileInput = document.getElementById('fileInput');
             const uploadArea = document.getElementById('uploadArea');
             
@@ -445,7 +421,6 @@
                 }
             });
 
-            // Form validation
             document.getElementById('weekCategory').addEventListener('change', validateForm);
             document.getElementById('dataDate').addEventListener('change', validateForm);
         }
@@ -459,7 +434,6 @@
                 document.getElementById('fileSize').textContent = formatFileSize(file.size);
                 document.getElementById('fileInfo').style.display = 'block';
                 
-                // Process file to count records
                 try {
                     const data = await processExcelFile(file);
                     processedData = data;
@@ -480,7 +454,7 @@
                     try {
                         const data = new Uint8Array(e.target.result);
                         const workbook = XLSX.read(data, { type: 'array' });
-                        const sheetName = workbook.SheetNames[0]; // First sheet or 'PR'
+                        const sheetName = workbook.SheetNames[0];
                         const worksheet = workbook.Sheets[sheetName];
                         const jsonData = XLSX.utils.sheet_to_json(worksheet);
                         resolve(jsonData);
@@ -501,12 +475,66 @@
             document.getElementById('uploadBtn').disabled = !(weekCategory && dataDate && hasFile && supabase);
         }
 
+        // Data processing functions
+        function detectEmergency(record) {
+            const emergencyKeywords = ['emergency', 'urgent', 'critical', 'high priority'];
+            const searchFields = [
+                record.PR_KEYWORD_REF || '',
+                record.PR_ADDITIONAL_INFO || '',
+                record.DESC || '',
+                record.LAST_REMARK || ''
+            ];
+            
+            return searchFields.some(field => 
+                emergencyKeywords.some(keyword => 
+                    field.toLowerCase().includes(keyword.toLowerCase())
+                )
+            );
+        }
+
+        function processDataForDatabase(jsonData, weekCategory, dataDate) {
+            return jsonData.map(row => ({
+                cost_center: row.COST_CENTER,
+                cost_center_name: row.COST_CENTER_NAME,
+                prno: row.PRNO,
+                linenum: row.LINENUM,
+                lineno: row.LINENO,
+                wp: row.WP,
+                mcode: row.MCODE,
+                cost_cmpnt: row.COST_CMPNT,
+                item_code: row.ITEM_CODE,
+                description: row.DESC,
+                unit: row.UNIT,
+                ordered_qty: row.ORDERED_QTY,
+                served_qty: row.SERVED_QTY,
+                pr_status: row.PR_STATUS,
+                pr_keyword_ref: row.PR_KEYWORD_REF,
+                pr_additional_info: row.PR_ADDITIONAL_INFO,
+                requester: row.REQUESTER,
+                requester_name: row.REQUESTER_NAME,
+                owner: row.OWNER,
+                owner_name: row.OWNER_NAME,
+                buyer: row.BUYER,
+                buyer_name: row.BUYER_NAME,
+                po_numbers: row.PO_NUMBERS,
+                last_remark: row.LAST_REMARK,
+                approved_on: row.APPROVED_ON ? new Date(row.APPROVED_ON) : null,
+                approved_since: row.APPROVED_SINCE,
+                last_assigned_on: row.LAST_ASSIGNED_ON ? new Date(row.LAST_ASSIGNED_ON) : null,
+                last_assigned_since: row.LAST_ASSIGNED_SINCE,
+                closed: row.CLOSED || false,
+                week_category: weekCategory,
+                data_date: dataDate,
+                emergency_flag: detectEmergency(row)
+            }));
+        }
+
         // Upload handling
         async function handleUpload(e) {
             e.preventDefault();
             
             if (!supabase) {
-                showAlert('uploadAlert', 'danger', 'Supabase connection not available');
+                showAlert('uploadAlert', 'danger', 'Please configure Supabase connection first');
                 return;
             }
 
@@ -522,36 +550,59 @@
                 document.getElementById('uploadProgress').style.display = 'block';
                 document.getElementById('uploadBtn').disabled = true;
                 updateProgress(10);
-                
-                // Use Netlify serverless function for upload
-                const response = await fetch('/.netlify/functions/upload', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        data: processedData,
-                        weekCategory,
-                        dataDate,
-                        filename: selectedFile.name
-                    })
-                });
-                
-                updateProgress(90);
-                
-                if (response.ok) {
-                    const result = await response.json();
-                    updateProgress(100);
-                    showAlert('uploadAlert', 'success', 
-                        `Upload successful! Processed ${result.recordsProcessed} records.`);
-                    resetUploadForm();
-                } else {
-                    const error = await response.json();
-                    showAlert('uploadAlert', 'danger', error.error || 'Upload failed');
+
+                // Process the data
+                const dbData = processDataForDatabase(processedData, weekCategory, dataDate);
+                updateProgress(30);
+
+                // Delete existing data for this week category and date
+                const { error: deleteError } = await supabase
+                    .from('pr_data')
+                    .delete()
+                    .eq('week_category', weekCategory)
+                    .eq('data_date', dataDate);
+
+                if (deleteError) {
+                    throw deleteError;
                 }
+                updateProgress(50);
+
+                // Insert new data in batches
+                const batchSize = 1000;
+                let totalInserted = 0;
+
+                for (let i = 0; i < dbData.length; i += batchSize) {
+                    const batch = dbData.slice(i, i + batchSize);
+                    const { error: insertError } = await supabase
+                        .from('pr_data')
+                        .insert(batch);
+
+                    if (insertError) {
+                        throw insertError;
+                    }
+
+                    totalInserted += batch.length;
+                    updateProgress(50 + (i / dbData.length) * 40);
+                }
+
+                // Log the upload
+                await supabase
+                    .from('upload_log')
+                    .insert({
+                        filename: selectedFile.name,
+                        file_size: selectedFile.size,
+                        records_processed: totalInserted,
+                        week_category: weekCategory,
+                        uploaded_by: 'Admin User'
+                    });
+
+                updateProgress(100);
+                showAlert('uploadAlert', 'success', 
+                    `Upload successful! Processed ${totalInserted} records.`);
+                resetUploadForm();
             } catch (error) {
                 console.error('Upload error:', error);
-                showAlert('uploadAlert', 'danger', 'Upload failed. Please check your connection and try again.');
+                showAlert('uploadAlert', 'danger', `Upload failed: ${error.message}`);
             } finally {
                 document.getElementById('uploadProgress').style.display = 'none';
                 document.getElementById('uploadBtn').disabled = false;

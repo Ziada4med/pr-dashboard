@@ -8,90 +8,18 @@
     <script src="https://cdn.jsdelivr.net/npm/moment@2.29.4/moment.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.38.4/dist/umd/supabase.js"></script>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             padding: 20px;
             color: #333;
-        }
-
-        .config-notice {
-            background: #fff3cd;
-            border: 2px solid #ffeaa7;
-            border-radius: 10px;
-            padding: 20px;
-            margin: 20px auto;
-            max-width: 800px;
-            text-align: center;
-        }
-
-        .config-notice h3 {
-            color: #856404;
-            margin-bottom: 15px;
-        }
-
-        .config-form {
-            background: white;
-            border-radius: 10px;
-            padding: 30px;
-            margin: 20px auto;
-            max-width: 600px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-        }
-
-        .form-group {
-            margin-bottom: 20px;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 500;
-            color: #2c3e50;
-        }
-
-        .form-control {
-            width: 100%;
-            padding: 12px;
-            border: 2px solid #e9ecef;
-            border-radius: 5px;
-            font-size: 1rem;
-        }
-
-        .btn {
-            padding: 12px 24px;
-            border: none;
-            border-radius: 5px;
-            font-size: 1rem;
-            font-weight: 500;
-            cursor: pointer;
-            width: 100%;
-            background: #3498db;
-            color: white;
-            transition: all 0.3s;
-        }
-
-        .btn:hover {
-            background: #2980b9;
-        }
-
-        .alert {
-            padding: 15px;
-            border-radius: 5px;
-            margin: 15px 0;
-        }
-
-        .alert-success {
-            background: #d4edda;
-            color: #155724;
-        }
-
-        .alert-danger {
-            background: #f8d7da;
-            color: #721c24;
         }
 
         .dashboard-container {
@@ -101,7 +29,6 @@
             border-radius: 15px;
             box-shadow: 0 20px 40px rgba(0,0,0,0.1);
             overflow: hidden;
-            display: none;
         }
 
         .header {
@@ -116,6 +43,7 @@
             font-size: 2.5rem;
             font-weight: 700;
             margin-bottom: 10px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
         }
 
         .header .subtitle {
@@ -124,12 +52,31 @@
             font-weight: 300;
         }
 
+        .admin-link {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 25px;
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: all 0.3s;
+        }
+
+        .admin-link:hover {
+            background: rgba(255,255,255,0.3);
+            transform: translateY(-2px);
+        }
+
         .last-updated {
             background: #ecf0f1;
             padding: 15px;
             text-align: center;
             font-size: 0.9rem;
             color: #7f8c8d;
+            border-bottom: 1px solid #bdc3c7;
         }
 
         .dashboard-grid {
@@ -140,6 +87,7 @@
             min-height: calc(100vh - 200px);
         }
 
+        /* Card Metrics Row */
         .metrics-row {
             grid-column: 1 / -1;
             display: grid;
@@ -155,24 +103,38 @@
             border-radius: 12px;
             text-align: center;
             box-shadow: 0 8px 16px rgba(52, 152, 219, 0.3);
-            transition: transform 0.3s ease;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            position: relative;
+            overflow: hidden;
         }
 
         .metric-card:hover {
             transform: translateY(-5px);
+            box-shadow: 0 12px 24px rgba(52, 152, 219, 0.4);
         }
 
-        .metric-card.total { background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%); }
-        .metric-card.pending { background: linear-gradient(135deg, #f39c12 0%, #d68910 100%); }
-        .metric-card.emergency { background: linear-gradient(135deg, #e67e22 0%, #d35400 100%); }
-        .metric-card.owners { background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%); }
-        .metric-card.this-week { background: linear-gradient(135deg, #1abc9c 0%, #16a085 100%); }
-        .metric-card.overdue { background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%); }
+        .metric-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: rgba(255,255,255,0.3);
+        }
+
+        .metric-card.total { background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%); box-shadow: 0 8px 16px rgba(231, 76, 60, 0.3); }
+        .metric-card.pending { background: linear-gradient(135deg, #f39c12 0%, #d68910 100%); box-shadow: 0 8px 16px rgba(243, 156, 18, 0.3); }
+        .metric-card.emergency { background: linear-gradient(135deg, #e67e22 0%, #d35400 100%); box-shadow: 0 8px 16px rgba(230, 126, 34, 0.3); }
+        .metric-card.owners { background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%); box-shadow: 0 8px 16px rgba(155, 89, 182, 0.3); }
+        .metric-card.this-week { background: linear-gradient(135deg, #1abc9c 0%, #16a085 100%); box-shadow: 0 8px 16px rgba(26, 188, 156, 0.3); }
+        .metric-card.overdue { background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%); box-shadow: 0 8px 16px rgba(44, 62, 80, 0.3); }
 
         .metric-value {
             font-size: 2.8rem;
             font-weight: 800;
             margin-bottom: 5px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.2);
         }
 
         .metric-label {
@@ -183,12 +145,14 @@
             opacity: 0.9;
         }
 
+        /* Chart Containers */
         .chart-container {
             background: white;
             border-radius: 12px;
             padding: 25px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.1);
             border: 1px solid #ecf0f1;
+            position: relative;
         }
 
         .chart-container h3 {
@@ -201,70 +165,115 @@
             border-bottom: 2px solid #ecf0f1;
         }
 
-        .main-pie-chart { grid-column: 1 / 9; grid-row: 2 / 5; }
-        .side-chart-1 { grid-column: 9 / 13; grid-row: 2 / 3; }
-        .side-chart-2 { grid-column: 9 / 13; grid-row: 3 / 4; }
-        .side-chart-3 { grid-column: 9 / 13; grid-row: 4 / 5; }
-        .bottom-chart-1 { grid-column: 1 / 5; grid-row: 5 / 7; }
-        .bottom-chart-2 { grid-column: 5 / 9; grid-row: 5 / 7; }
-        .bottom-chart-3 { grid-column: 9 / 13; grid-row: 5 / 7; }
+        /* Main Pie Chart - Pending PRs by Owner */
+        .main-pie-chart {
+            grid-column: 1 / 9;
+            grid-row: 2 / 5;
+        }
 
-        .chart-canvas { max-height: 400px; }
-        .chart-canvas.small { max-height: 200px; }
+        /* Side Charts */
+        .side-chart-1 {
+            grid-column: 9 / 13;
+            grid-row: 2 / 3;
+        }
 
+        .side-chart-2 {
+            grid-column: 9 / 13;
+            grid-row: 3 / 4;
+        }
+
+        .side-chart-3 {
+            grid-column: 9 / 13;
+            grid-row: 4 / 5;
+        }
+
+        /* Bottom Charts */
+        .bottom-chart-1 {
+            grid-column: 1 / 5;
+            grid-row: 5 / 7;
+        }
+
+        .bottom-chart-2 {
+            grid-column: 5 / 9;
+            grid-row: 5 / 7;
+        }
+
+        .bottom-chart-3 {
+            grid-column: 9 / 13;
+            grid-row: 5 / 7;
+        }
+
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 200px;
+            color: #7f8c8d;
+            font-size: 1.1rem;
+        }
+
+        .error {
+            color: #e74c3c;
+            text-align: center;
+            padding: 20px;
+            background: #fdf2f2;
+            border-radius: 8px;
+            margin: 20px;
+        }
+
+        .chart-canvas {
+            max-height: 400px;
+        }
+
+        .chart-canvas.small {
+            max-height: 200px;
+        }
+
+        .netlify-badge {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background: rgba(255,255,255,0.1);
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            opacity: 0.7;
+        }
+
+        /* Responsive design */
         @media (max-width: 1200px) {
-            .dashboard-grid { grid-template-columns: repeat(8, 1fr); }
-            .main-pie-chart { grid-column: 1 / -1; grid-row: 2 / 4; }
-            .side-chart-1, .side-chart-2, .side-chart-3 { grid-column: span 4; }
+            .dashboard-grid {
+                grid-template-columns: repeat(8, 1fr);
+            }
+            
+            .main-pie-chart {
+                grid-column: 1 / -1;
+                grid-row: 2 / 4;
+            }
+            
+            .side-chart-1, .side-chart-2, .side-chart-3 {
+                grid-column: span 4;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .header h1 { font-size: 1.8rem; }
+            .dashboard-grid { padding: 15px; grid-gap: 15px; }
+            .metric-card { padding: 20px; }
+            .metric-value { font-size: 2rem; }
+            .chart-container { padding: 15px; }
+            .admin-link { position: static; margin-top: 10px; display: inline-block; }
         }
     </style>
 </head>
 <body>
-    <!-- Configuration Form -->
-    <div id="configSection">
-        <div class="config-notice">
-            <h3>🔧 Quick Setup Required</h3>
-            <p>Enter your Supabase credentials below to load the dashboard.</p>
-            <p><small>Your credentials will be saved locally in your browser.</small></p>
-        </div>
-
-        <div class="config-form">
-            <div class="form-group">
-                <label for="supabaseUrl">Supabase Project URL</label>
-                <input type="text" id="supabaseUrl" class="form-control" 
-                       placeholder="https://your-project-id.supabase.co">
-                <small>Get this from your Supabase project dashboard → Settings → API</small>
-            </div>
-
-            <div class="form-group">
-                <label for="supabaseKey">Supabase Anon Key</label>
-                <input type="text" id="supabaseKey" class="form-control" 
-                       placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...">
-                <small>Your public anon key (safe to use in frontend)</small>
-            </div>
-
-            <button class="btn" onclick="saveConfig()">Connect & Load Dashboard</button>
-
-            <div id="configAlert"></div>
-
-            <div style="margin-top: 20px; padding: 15px; background: #e8f4f8; border-radius: 5px; font-size: 0.9rem;">
-                <strong>Need help?</strong>
-                <ol>
-                    <li>Go to <a href="https://supabase.com" target="_blank">supabase.com</a> and create a free account</li>
-                    <li>Create a new project</li>
-                    <li>Run the database schema (see admin panel instructions)</li>
-                    <li>Get your credentials from Settings → API</li>
-                    <li>Enter them above</li>
-                </ol>
-            </div>
-        </div>
-    </div>
-
-    <!-- Dashboard -->
-    <div class="dashboard-container" id="dashboardSection">
+    <div class="dashboard-container">
         <div class="header">
+            <a href="/admin.html" class="admin-link">🛠️ Admin Panel</a>
             <h1>EXECUTIVE SUMMARY</h1>
             <div class="subtitle">Purchase Request Dashboard</div>
+            <div class="netlify-badge">Powered by Netlify + Supabase</div>
         </div>
         
         <div class="last-updated">
@@ -341,89 +350,48 @@
     </div>
 
     <script>
-        // ======================================
-        // CONFIGURATION SECTION
-        // ======================================
-        
-        let supabase = null;
+        // Supabase configuration
+        const SUPABASE_URL = 'VITE_SUPABASE_URL'; // This will be replaced by build process
+        const SUPABASE_ANON_KEY = 'VITE_SUPABASE_ANON_KEY'; // This will be replaced by build process
+
+        // Initialize Supabase client
+        let supabase;
+        try {
+            // These values will be replaced during build process
+            const supabaseUrl = 'VITE_SUPABASE_URL_PLACEHOLDER';
+            const supabaseKey = 'VITE_SUPABASE_ANON_KEY_PLACEHOLDER';
+            
+            // Check if we're in development or if values weren't replaced
+            if (window.location.hostname === 'localhost' || 
+                window.location.hostname === '127.0.0.1' ||
+                supabaseUrl.includes('PLACEHOLDER')) {
+                
+                console.warn('⚠️ Using development/placeholder values');
+                // For development, use actual values here:
+                const devUrl = 'https://your-project.supabase.co';
+                const devKey = 'your-anon-key';
+                
+                if (devUrl.includes('your-project')) {
+                    showError('Please configure Supabase credentials. See admin panel for setup instructions.');
+                    return;
+                }
+                
+                supabase = window.supabase.createClient(devUrl, devKey);
+            } else {
+                supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+            }
+            
+            console.log('✅ Supabase initialized');
+        } catch (error) {
+            console.error('Failed to initialize Supabase:', error);
+            showError('Supabase connection failed. Please check configuration.');
+        }
+
+        // Global variables
         let dashboardData = null;
         let charts = {};
 
-        // Load saved configuration
-        const savedUrl = localStorage.getItem('supabaseUrl');
-        const savedKey = localStorage.getItem('supabaseKey');
-        
-        if (savedUrl && savedKey) {
-            document.getElementById('supabaseUrl').value = savedUrl;
-            document.getElementById('supabaseKey').value = savedKey;
-            // Auto-connect if we have saved credentials
-            setTimeout(() => saveConfig(), 1000);
-        }
-
-        function saveConfig() {
-            const url = document.getElementById('supabaseUrl').value.trim();
-            const key = document.getElementById('supabaseKey').value.trim();
-
-            if (!url || !key) {
-                showAlert('Please enter both URL and API key', 'danger');
-                return;
-            }
-
-            if (!url.includes('.supabase.co')) {
-                showAlert('Please enter a valid Supabase URL (must contain .supabase.co)', 'danger');
-                return;
-            }
-
-            // Save to localStorage
-            localStorage.setItem('supabaseUrl', url);
-            localStorage.setItem('supabaseKey', key);
-
-            showAlert('Connecting...', 'success');
-
-            // Initialize Supabase
-            try {
-                supabase = window.supabase.createClient(url, key);
-                testConnection();
-            } catch (error) {
-                showAlert('Failed to initialize connection: ' + error.message, 'danger');
-            }
-        }
-
-        async function testConnection() {
-            try {
-                showAlert('Testing connection...', 'success');
-                
-                const { data, error } = await supabase
-                    .from('pr_data')
-                    .select('count')
-                    .limit(1);
-
-                if (error) {
-                    throw error;
-                }
-
-                showAlert('Connection successful! Loading dashboard...', 'success');
-                
-                setTimeout(() => {
-                    document.getElementById('configSection').style.display = 'none';
-                    document.getElementById('dashboardSection').style.display = 'block';
-                    startDashboard();
-                }, 1500);
-
-            } catch (error) {
-                showAlert('Connection failed: ' + error.message + '. Please check your credentials and database setup.', 'danger');
-            }
-        }
-
-        function showAlert(message, type) {
-            const alertDiv = document.getElementById('configAlert');
-            alertDiv.innerHTML = `<div class="alert alert-${type}">${message}</div>`;
-        }
-
-        // ======================================
-        // DASHBOARD SECTION
-        // ======================================
-
+        // Color schemes
         const colors = {
             primary: ['#3498db', '#e74c3c', '#2ecc71', '#f39c12', '#9b59b6', '#1abc9c', '#34495e', '#e67e22'],
             gradient: [
@@ -438,69 +406,91 @@
             ]
         };
 
-        function startDashboard() {
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', function() {
             loadDashboardData();
-            setInterval(loadDashboardData, 5 * 60 * 1000); // Refresh every 5 minutes
-        }
+            // Refresh every 5 minutes
+            setInterval(loadDashboardData, 5 * 60 * 1000);
+        });
 
+        // Load data from Supabase
         async function loadDashboardData() {
+            if (!supabase) {
+                showError('Supabase connection not available. Please check configuration.');
+                return;
+            }
+
             try {
-                const { data: prData, error } = await supabase
+                // Get latest PR data
+                const { data: prData, error: prError } = await supabase
                     .from('pr_data')
                     .select('*')
                     .eq('week_category', 'THIS_WEEK')
                     .order('data_date', { ascending: false })
                     .limit(10000);
 
-                if (error) throw error;
-
-                if (!prData || prData.length === 0) {
-                    document.getElementById('lastUpdated').textContent = 'No data available - please upload data via admin panel';
-                    return;
+                if (prError) {
+                    throw prError;
                 }
 
-                const ownerDistribution = calculateOwnerDistribution(prData);
+                // Calculate owner distribution
+                const ownerDistribution = calculateOwnerDistribution(prData || []);
                 
-                dashboardData = { prData, ownerDistribution };
+                dashboardData = {
+                    prData: prData || [],
+                    ownerDistribution
+                };
+
                 updateDashboard();
                 document.getElementById('lastUpdated').textContent = moment().format('MMMM Do YYYY, h:mm:ss A');
-                
             } catch (error) {
                 console.error('Error loading dashboard data:', error);
-                document.getElementById('lastUpdated').textContent = 'Error loading data: ' + error.message;
+                showError('Failed to load dashboard data. Please check your Supabase configuration.');
             }
         }
 
+        // Calculate owner distribution for pie chart
         function calculateOwnerDistribution(data) {
             const ownerCounts = {};
+            const ownerEmergency = {};
+
             data.forEach(pr => {
                 const owner = pr.owner_name || 'Unknown';
                 ownerCounts[owner] = (ownerCounts[owner] || 0) + 1;
+                if (pr.emergency_flag) {
+                    ownerEmergency[owner] = (ownerEmergency[owner] || 0) + 1;
+                }
             });
 
             const uniquePRs = new Set(data.map(pr => pr.prno)).size;
+
             return Object.keys(ownerCounts).map(owner => ({
                 owner_name: owner,
                 pr_count: ownerCounts[owner],
+                emergency_count: ownerEmergency[owner] || 0,
                 percentage: ((ownerCounts[owner] / uniquePRs) * 100).toFixed(1)
             })).sort((a, b) => b.pr_count - a.pr_count);
         }
 
+        // Update all dashboard elements
         function updateDashboard() {
             if (!dashboardData) return;
+
             updateMetrics();
             createMainPieChart();
             createStatusChart();
-            createPriorityChart();
+            createPriorityChart(); 
             createWeeklyChart();
             createApprovalChart();
             createCostCenterChart();
             createAssignmentChart();
         }
 
+        // Update metric cards
         function updateMetrics() {
             const { prData } = dashboardData;
             
+            // Calculate metrics from data
             const uniquePRs = new Set(prData.map(pr => pr.prno)).size;
             const pendingPRs = prData.filter(pr => pr.pr_status === 'PENDING').length;
             const emergencyPRs = prData.filter(pr => pr.emergency_flag).length;
@@ -518,8 +508,10 @@
             document.getElementById('overduePRs').textContent = overduePRs.toLocaleString();
         }
 
+        // Create main pie chart
         function createMainPieChart() {
             const { ownerDistribution } = dashboardData;
+            
             if (charts.mainPie) charts.mainPie.destroy();
             
             const ctx = document.getElementById('mainPieChart').getContext('2d');
@@ -541,7 +533,11 @@
                     plugins: {
                         legend: {
                             position: 'bottom',
-                            labels: { padding: 20, usePointStyle: true, font: { size: 12 } }
+                            labels: {
+                                padding: 20,
+                                usePointStyle: true,
+                                font: { size: 12 }
+                            }
                         },
                         tooltip: {
                             callbacks: {
@@ -557,8 +553,10 @@
             });
         }
 
+        // Create status breakdown chart
         function createStatusChart() {
             const { prData } = dashboardData;
+            
             if (charts.status) charts.status.destroy();
             
             const statusCounts = prData.reduce((acc, pr) => {
@@ -580,13 +578,17 @@
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    plugins: { legend: { position: 'bottom' } }
+                    plugins: {
+                        legend: { position: 'bottom' }
+                    }
                 }
             });
         }
 
+        // Create priority levels chart
         function createPriorityChart() {
             const { prData } = dashboardData;
+            
             if (charts.priority) charts.priority.destroy();
             
             const emergency = prData.filter(pr => pr.emergency_flag).length;
@@ -606,13 +608,17 @@
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    plugins: { legend: { position: 'bottom' } }
+                    plugins: {
+                        legend: { position: 'bottom' }
+                    }
                 }
             });
         }
 
+        // Create weekly trend chart
         function createWeeklyChart() {
             const { prData } = dashboardData;
+            
             if (charts.weekly) charts.weekly.destroy();
             
             const weekCounts = prData.reduce((acc, pr) => {
@@ -638,13 +644,17 @@
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: { legend: { display: false } },
-                    scales: { y: { beginAtZero: true } }
+                    scales: {
+                        y: { beginAtZero: true }
+                    }
                 }
             });
         }
 
+        // Create approval timeline chart
         function createApprovalChart() {
             const { prData } = dashboardData;
+            
             if (charts.approval) charts.approval.destroy();
             
             const approvalCounts = prData.reduce((acc, pr) => {
@@ -668,14 +678,20 @@
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
-                    scales: { y: { beginAtZero: true } }
+                    plugins: {
+                        legend: { display: false }
+                    },
+                    scales: {
+                        y: { beginAtZero: true }
+                    }
                 }
             });
         }
 
+        // Create cost center chart
         function createCostCenterChart() {
             const { prData } = dashboardData;
+            
             if (charts.costCenter) charts.costCenter.destroy();
             
             const costCenterCounts = prData.reduce((acc, pr) => {
@@ -704,13 +720,17 @@
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: { legend: { display: false } },
-                    scales: { y: { beginAtZero: true } }
+                    scales: {
+                        y: { beginAtZero: true }
+                    }
                 }
             });
         }
 
+        // Create assignment age chart
         function createAssignmentChart() {
             const { prData } = dashboardData;
+            
             if (charts.assignment) charts.assignment.destroy();
             
             const assignmentCounts = prData.reduce((acc, pr) => {
@@ -736,9 +756,20 @@
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: { legend: { display: false } },
-                    scales: { y: { beginAtZero: true } }
+                    scales: {
+                        y: { beginAtZero: true }
+                    }
                 }
             });
+        }
+
+        // Show error message
+        function showError(message) {
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'error';
+            errorDiv.textContent = message;
+            document.body.appendChild(errorDiv);
+            setTimeout(() => errorDiv.remove(), 10000);
         }
     </script>
 </body>
